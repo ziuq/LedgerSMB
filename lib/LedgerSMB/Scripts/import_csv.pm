@@ -114,7 +114,7 @@ sub _aa_multi {
         $acst->execute($acct);
         ($pass) = $acst->fetchrow_array;
         $request->error("Account $acct not found") if !$pass;
-        ($acct) = split /--/, $ref->[3];
+        ($acct) = split /--/, $ref->[3];  ## no critic (ProhibitMagicNumbers) sniff
         $acst->execute($acct);
         ($pass) = $acst->fetchrow_array;
         $request->error("Account $acct not found") if !$pass;
@@ -497,7 +497,7 @@ sub begin_import {
     # $request->{page_id} =~ s/_/-/;
     # $request->{page_id} .= '-import';
     $request->{page_id} = 'batch-import';
-    return $template->render_to_psgi({ request => $request });
+    return $template->render({ request => $request });
 }
 
 =head2 run_import

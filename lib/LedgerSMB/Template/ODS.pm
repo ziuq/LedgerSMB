@@ -51,10 +51,10 @@ my %style_table;    # hash table for created styles
 
 # SC: Subtract 8 from the attribute to get the index
 #     http://search.cpan.org/src/JMCNAMARA/Spreadsheet-WriteExcel-2.11/doc/palette.html
-my @colour = (odfColor(0, 0, 0), odfColor(255, 255, 255),
-    odfColor(255, 0, 0), odfColor(0, 255, 0),
-    odfColor(0, 0, 255), odfColor(255, 255, 0),
-    odfColor(255, 0, 255), odfColor(0, 255, 255),
+my @colour = (odfColor(0, 0, 0), odfColor(255, 255, 255),  ## no critic (ProhibitMagicNumbers) sniff
+    odfColor(255, 0, 0), odfColor(0, 255, 0),  ## no critic (ProhibitMagicNumbers) sniff
+    odfColor(0, 0, 255), odfColor(255, 255, 0),  ## no critic (ProhibitMagicNumbers) sniff
+    odfColor(255, 0, 255), odfColor(0, 255, 255),  ## no critic (ProhibitMagicNumbers) sniff
     odfColor(128, 0, 0), odfColor(0, 128, 0),
     odfColor(0, 0, 128), odfColor(128, 128, 0),
     odfColor(128, 0, 128), odfColor(0, 128, 128),
@@ -747,11 +747,12 @@ sub _format_cleanup_handler {
 
 sub _ods_process {
     my ($output, $template) = @_;
+    my $workdir = File::Temp->newdir;
     my $fn;
     my $fh; # if we need to use a temp file, we need to keep the object
             # in scope, because when it goes out of scope, the file is removed
     if (ref $output) {
-        $fh = File::Temp->new( DIR => LedgerSMB::Sysconfig::tempdir());
+        $fh = File::Temp->new( DIR => $workdir );
         $fn = $fh->filename;
     }
     else {
@@ -759,7 +760,7 @@ sub _ods_process {
     }
     $ods = ooDocument(file => $fn,
                       create => 'spreadsheet',
-                      work_dir => LedgerSMB::Sysconfig::tempdir());
+                      work_dir => $workdir );
 
     my $parser = XML::Twig->new(
         start_tag_handlers => {

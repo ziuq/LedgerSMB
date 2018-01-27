@@ -10,7 +10,6 @@ LedgerSMB::Scripts::configuration->can('action')->($request);
 package LedgerSMB::Scripts::configuration;
 use LedgerSMB::Setting;
 use LedgerSMB::Setting::Sequence;
-use LedgerSMB::AM; # To be removed, only for template directories right now
 use LedgerSMB::App_State;
 use strict;
 use warnings;
@@ -60,7 +59,8 @@ sub _default_settings {
                 label => $locale->text('Disable Back Button'),
                 type => 'YES_NO', },
               { name => 'password_duration',
-                label => $locale->text('Password Duration') },
+                label => $locale->text('Password Duration (days)')
+              },
               { name => 'session_timeout',
         label => $locale->text('Session Timeout'), },
               { name => 'never_logout',
@@ -285,7 +285,7 @@ sub defaults_screen{
     my $template = LedgerSMB::Template->new_UI(
         $request,
         template => 'Configuration/settings');
-    return $template->render_to_psgi({
+    return $template->render({
         form => $request,
         # hiddens => \%hiddens,
         selects => \%selects,
@@ -318,7 +318,7 @@ sub sequence_screen {
     return LedgerSMB::Template->new_UI(
         $request,
         template => 'Configuration/sequence'
-        )->render_to_psgi($request);
+        )->render($request);
 }
 
 =item save_defaults

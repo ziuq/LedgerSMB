@@ -38,6 +38,12 @@ BEGIN
 END;
 $$ LANGUAGE PLPGSQL;
 
+COMMENT ON FUNCTION reconciliation__submit_set(
+        in_report_id int, in_line_ids int[]) IS
+$$Submits a reconciliation report for approval.
+in_line_ids is used to specify which report lines are cleared, finalizing the
+report.$$;
+
 CREATE OR REPLACE FUNCTION reconciliation__check(in_end_date date, in_chart_id int)
 RETURNS SETOF defaults
 LANGUAGE SQL AS
@@ -68,12 +74,6 @@ RETURNS bool language sql as $$
 $$ SECURITY DEFINER;
 
 REVOKE EXECUTE ON FUNCTION reconciliation__reject_set(in_report_id int) FROM public;
-
-COMMENT ON FUNCTION reconciliation__submit_set(
-        in_report_id int, in_line_ids int[]) IS
-$$Submits a reconciliation report for approval.
-in_line_ids is used to specify which report lines are cleared, finalizing the
-report.$$;
 
 CREATE OR REPLACE FUNCTION reconciliation__save_set(
         in_report_id int, in_line_ids int[]) RETURNS bool AS
@@ -572,6 +572,26 @@ $$ Searches for reconciliation reports.
 NULLs match all values.
 in_date_to and in_date_from give a range of reports.  All other inputs are
 exact matches.
+$$;
+
+CREATE OR REPLACE FUNCTION reconciliation__previous_report_date
+(in_chart_id int, in_end_date DATE)
+returns setof cr_report AS
+$$
+                SELECT r.* FROM cr_report r
+                  JOIN account c ON r.chart_id = c.id
+                 WHERE in_end_date > end_date
+                   AND in_chart_id = chart_id
+                   AND submitted
+                   AND NOT r.deleted
+                 ORDER BY end_date DESC
+                 LIMIT 1
+$$ language sql;
+
+COMMENT ON FUNCTION reconciliation__previous_report_date
+(in_chart_id int, in_end_date DATE) IS
+$$ Returns the submitted reconciliation report before in_end_date
+for the in_chart_id account
 $$;
 
 DROP TYPE IF EXISTS recon_accounts CASCADE;

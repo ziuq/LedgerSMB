@@ -69,10 +69,12 @@ my @tests = (
 for my $test (@tests) {
 
     # Set the source file
-    open(SOURCE, '>', $testfile)
-         or die "Could not open file '$testfile' $!";
-    print SOURCE $test->{statement} . "\n";
-    close SOURCE;
+    open(my $SOURCE, '>', $testfile)
+        or BAIL_OUT("failed opening $testfile : $!");
+    print $SOURCE $test->{statement} . "\n"
+        or BAIL_OUT("error writing to $testfile : $!");
+    close $SOURCE
+        or BAIL_OUT("error closing $testfile after writing : $!");
 
     # Produce a PO file
     my ($stderr,$exit) = capture_stderr {

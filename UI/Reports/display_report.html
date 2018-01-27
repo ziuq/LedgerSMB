@@ -15,8 +15,33 @@ IF NOT QSTRING.match('&amp;company=');
 END;
 
 LINK = request.script _ '?' _ QSTRING;
-LINK = LINK.replace('\&amp;\&amp;', '&amp;');
+LINK = LINK.replace('&amp;&amp;', '&amp;');
 
+
+PAGINATED = request.paginate
+   OR (NOT request.paginate.defined AND rows.size > 1000);
+IF PAGINATED;
+   page=request.page.defined ? request.page : 1;
+   page_length=request.page_length.defined ? request.page_length : 100;
+   IF page_length > 1000;
+      page_length = 1000;
+   ELSIF page_length < 10;
+      page_length = 10;
+   END;
+
+   IF page < 0;
+      page = 1;
+   ELSIF rows.size < page * page_length;
+      page = 1;
+   END;
+
+   first_page_row = page * page_length;
+   last_page_row = (rows.size < (page+1)*page_length)
+            ? rows.size : (page+1)*page_length - 1;
+
+   rows = rows.slice(first_page_row, last_page_row);
+
+END;
 ?>
 <body class="lsmb <?lsmb dojo_theme ?>">
 <form data-dojo-type="lsmb/Form"
@@ -58,6 +83,19 @@ LINK = LINK.replace('\&amp;\&amp;', '&amp;');
          END; ?>
   <?lsmb PROCESS dynatable tbody = {rows = rows }
                  attributes = {class = 'report', order_url = order_url } ?>
+<?lsmb IF PAGINATED AND NOT request.paginate.defined ?>
+  <div>
+    <?lsmb text('Too many rows match your query; first 1000 lines returned'); ?>
+    <a href="<?lsmb LINK ?>&amp;paginate=0"><?lsmb text('Expand full match') ?></a>
+  </div>
+<?lsmb END ?>
+<?lsmb IF PAGINATED ?>
+  <div>
+    <a href="<?lsmb LINK.remove('&amp;page=[^&]+').remove('&amp;paginate=[^&]+') ?>&amp;page=<?lsmb page - 1 ?>"> &lt;<?lsmb text('Prev') ?> </a>
+    |
+    <a href="<?lsmb LINK.remove('&amp;page=[^&]+').remove('&amp;paginate=[^&]+') ?>&amp;page=<?lsmb page + 1 ?>"> <?lsmb text('Next') ?> &gt; </a>
+  </div>
+<?lsmb END ?>
 <div id="options">
 <?lsmb
 FOREACH OPTION IN options;
@@ -71,23 +109,23 @@ END; ?><br />
 <a href="<?lsmb LINK ?>">[<?lsmb text('permalink') ?>]</a>&nbsp;
 <?lsmb IF FORMATS.grep('PDF').size() ?>
 <a target="_blank"
-   href="<?lsmb LINK _ '&format=PDF' ?>">[<?lsmb text('PDF') ?>]</a>&nbsp;
+   href="<?lsmb LINK _ '&amp;format=PDF' ?>">[<?lsmb text('PDF') ?>]</a>&nbsp;
 <?lsmb END;
 IF FORMATS.grep('TXT').size(); ?>
 <a target="_blank"
-   href="<?lsmb LINK _ '&format=CSV' ?>">[<?lsmb text('CSV') ?>]</a>&nbsp;
+   href="<?lsmb LINK _ '&amp;format=CSV' ?>">[<?lsmb text('CSV') ?>]</a>&nbsp;
 <?lsmb END;
 IF FORMATS.grep('ODS').size() ?>
 <a target="_blank"
-   href="<?lsmb LINK _ '&format=ODS' ?>">[<?lsmb text('ODS') ?>]</a>&nbsp;
+   href="<?lsmb LINK _ '&amp;format=ODS' ?>">[<?lsmb text('ODS') ?>]</a>&nbsp;
 <?lsmb END;
 IF FORMATS.grep('XLS').size(); ?>
 <a target="_blank"
-   href="<?lsmb LINK _ '&format=XLS' ?>">[<?lsmb text('XLS') ?>]</a>&nbsp;
+   href="<?lsmb LINK _ '&amp;format=XLS' ?>">[<?lsmb text('XLS') ?>]</a>&nbsp;
 <?lsmb END;
 IF FORMATS.grep('XLSX').size(); ?>
 <a target="_blank"
-   href="<?lsmb LINK _ '&format=XLSX' ?>">[<?lsmb text('XLSX') ?>]</a>&nbsp;
+   href="<?lsmb LINK _ '&amp;format=XLSX' ?>">[<?lsmb text('XLSX') ?>]</a>&nbsp;
 <?lsmb END; ?>
 </form>
 </body>

@@ -52,23 +52,18 @@ $| = 1;
 
 binmode (STDIN, ':utf8');
 binmode (STDOUT, ':utf8');
+use LedgerSMB;
 use LedgerSMB::User;
 use LedgerSMB::Form;
 use LedgerSMB::Locale;
 use LedgerSMB::App_State;
-
-$form = Form->new;
-use LedgerSMB;
+use LedgerSMB::Middleware::RequestID;
 use LedgerSMB::Sysconfig;
 
+use Data::UUID;
 use Log::Log4perl;
-#make logger available to other old programs
-our $logger=Log::Log4perl->get_logger('old-handler-chain');
 
-print 'Set-Cookie: '
-    . $form->{"request.download-cookie"} . '=downloaded' . "\n"
-    if $form->{"request.download-cookie"};
-
+$form = Form->new;
 # name of this script
 my $script;
 $uri = $ENV{REQUEST_URI};
@@ -76,12 +71,30 @@ $uri =~ s/\?.*//;
 $ENV{SCRIPT_NAME} = $uri;
 $ENV{SCRIPT_NAME} =~ m/([^\/\\]*.pl)\?*.*$/;
 $script = $1;
+$script =~ m/(.*)\.pl/;
+my $script_module = $1;
+
+$form->{action} = $form->{nextsub} if (!$form->{action} and $form->{nextsub});
+
+
+#make logger available to other old programs
+our $logger=Log::Log4perl->get_logger("lsmb.$script_module.$form->{action}");
+local $SIG{__WARN__} = sub {
+    my $msg = shift;
+
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $msg =~ s/\n/\\n/g;
+    $logger->warn($msg);
+};
+
+print 'Set-Cookie: '
+    . $form->{"request.download-cookie"} . '=downloaded' . "\n"
+    if $form->{"request.download-cookie"};
 
 
 $locale = LedgerSMB::Locale->get_handle( ${LedgerSMB::Sysconfig::language} )
   or $form->error( __FILE__ . ':' . __LINE__ . ": Locale not loaded: $!\n" );
 
-$form->{action} = $form->{nextsub} if (!$form->{action} and $form->{nextsub});
 
 # we use $script for the language module
 $form->{script} = $script;
@@ -99,6 +112,10 @@ $locale->encoding('UTF-8');
 
 try {
     $form->db_init( \%myconfig );
+    print 'Set-Cookie: '
+        . LedgerSMB::Sysconfig::cookie_name . '='
+        . $form->{_new_session_cookie_value} . "\n"
+        if $form->{_new_session_cookie_value};
 
     # we get rid of myconfig and use User as a real object
     %myconfig = %{ LedgerSMB::User->fetch_config( $form ) };
@@ -182,7 +199,9 @@ Content-Type: text/html; charset=utf-8
 </html>
 |;
 
-    die;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $msg =~ s/\n/\\n/g;
+    $logger->error($msg);
 }
 
 

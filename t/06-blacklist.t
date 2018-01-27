@@ -2,27 +2,35 @@
 
 use LedgerSMB::Sysconfig;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Digest::SHA 'sha512_base64'; #already a dependency
 use FindBin;
 
 my $sqldir = "$FindBin::Bin/../sql/modules";
-my $tempdir = $LedgerSMB::Sysconfig::tempdir;
+my $blacklist_file = "$sqldir/BLACKLIST";
 
-open my $blist, '<', "$sqldir/BLACKLIST";
-my $contents = join "", map { $a = $_; chomp $a; $a } <$blist>;
-close $blist;
+ok(
+    open(my $blist, '<', $blacklist_file),
+    "open BLACKLIST",
+) or BAIL_OUT "Failed to open $blacklist_file $!";
+
+local $/ = undef;
+my $contents = <$blist>;
+$contents =~ s/\n//g;
+close $blist or diag("error closing $blacklist_file $!");
 
 ok($contents, "Got contents from original blacklist");
 
-diag `perl $FindBin::Bin/../tools/makeblacklist.pl`;
+my $contents2 = `perl $FindBin::Bin/../tools/makeblacklist.pl`;
+$? and BAIL_OUT 'makeblacklist.pl gave non-zero exit code';
 
-open $blist, '<', "$tempdir/BLACKLIST";
-my $contents2 = join "", map {  $a = $_; chomp $a; $a } <$blist>;
-close $blist;
-ok($contents, "Got contents from new blacklist");
+$contents2 =~ s/\n//g;
+ok($contents2, "Got contents from new blacklist");
 
-is(sha512_base64($contents2), sha512_base64($contents), 'Contents did not change')
-or diag " The contents of your blacklisted file changed.  
-Please re-run make blacklist so that anyone running this software from 
+is(sha512_base64($contents2),
+   sha512_base64($contents),
+   'Contents did not change'
+)
+or diag " The contents of your blacklisted file changed.
+Please re-run make blacklist so that anyone running this software from
 version control software is protected against sudden errors.";

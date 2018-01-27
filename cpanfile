@@ -7,7 +7,8 @@ requires 'CGI::Emulate::PSGI';
 requires 'CGI::Parse::PSGI';
 requires 'Config::IniFiles';
 requires 'DBD::Pg', '3.3.0';
-requires 'DBI';
+requires 'DBI', '1.635';
+requires 'Data::UUID';
 requires 'DateTime';
 requires 'DateTime::Format::Strptime';
 requires 'File::MimeInfo';
@@ -20,6 +21,7 @@ recommends 'Cpanel::JSON::XS';
 requires 'List::MoreUtils';
 requires 'Locale::Maketext::Lexicon', '0.62';
 requires 'Log::Log4perl';
+requires 'Log::Log4perl::Layout::PatternLayout';
 requires 'LWP::Simple';
 requires 'MIME::Lite';
 requires 'Module::Runtime';
@@ -50,6 +52,7 @@ requires 'Template::Parser';
 requires 'Template::Provider';
 requires 'Try::Tiny';
 requires 'Text::CSV';
+requires 'Version::Compare';
 requires 'XML::Simple';
 requires 'namespace::autoclean';
 
@@ -120,6 +123,7 @@ on 'develop' => sub {
     requires 'Module::CPANfile'; # for 01.2-deps.t
     requires 'Perl::Critic';
     requires 'Perl::Critic::Moose';
+    requires 'Perl::Critic::Policy::Modules::RequireExplicitInclusion';
     requires 'Pherkin::Extension::Weasel', '0.02';
     requires 'Plack::Middleware::Pod'; # YLA - Generate browseable documentation
     requires 'Selenium::Remote::Driver';
@@ -131,6 +135,8 @@ on 'develop' => sub {
     requires 'Test::Dependencies', '0.20';
     requires 'Test::Exception';
     requires 'Test::Harness', '3.36';
+    requires 'Test::Pod', '1.00';
+    requires 'Test::Pod::Coverage';
     requires 'Test::Trap';
     requires 'Weasel', '0.11';
     requires 'Weasel::Driver::Selenium2', '0.05';

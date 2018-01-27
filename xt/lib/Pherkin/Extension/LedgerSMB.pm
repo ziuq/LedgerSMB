@@ -21,6 +21,7 @@ use LedgerSMB::Entity::User;
 use Test::BDD::Cucumber::Extension;
 
 use Moose;
+use namespace::autoclean;
 extends 'Test::BDD::Cucumber::Extension';
 
 
@@ -196,7 +197,7 @@ sub create_template {
 
     $dbh->do("INSERT INTO defaults
                      VALUES ('role_prefix', 'lsmb_${template}__')");
-    $dbh->commit;
+    $dbh->commit if ! $dbh->{AutoCommit};
     $dbh->disconnect;
 
     $self->template_created(1);
@@ -306,4 +307,5 @@ INSERT INTO acc_trans(trans_id, transdate, chart_id, amount)
     }
 }
 
+__PACKAGE__->meta->make_immutable;
 1;

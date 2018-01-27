@@ -18,6 +18,7 @@ env:
 notifications:
   webhooks: https://ledgersmb.org/webhook/travis_ci_notifications
 
+
 matrix:
   include:
     - perl: '5.26'
@@ -27,8 +28,9 @@ matrix:
         apt:
           packages:
             - nginx postgresql-9.6-pgtap
+            - texlive-latex-recommended
+            - texlive-xetex
       env:
-        - POD_TESTING=1
     - perl: '5.24'
       addons:
         postgresql: '9.5'
@@ -36,6 +38,8 @@ matrix:
         apt:
           packages:
             - nginx postgresql-9.5-pgtap
+            - texlive-latex-recommended
+            - texlive-xetex
       env:
         # - TEST_SAUCE=1
         - DOJO_BUILT=0
@@ -44,7 +48,9 @@ matrix:
         postgresql: "9.4"
         apt:
           packages:
-            - nginx postgresql-9.4-pgtap
+             - nginx postgresql-9.4-pgtap
+             - texlive-latex-recommended
+             - texlive-xetex
       env:
         - COVERAGE=1
     - perl: '5.20'
@@ -53,6 +59,8 @@ matrix:
         apt:
           packages:
             - nginx postgresql-9.4-pgtap
+            - texlive-latex-recommended
+            - texlive-xetex
       env:
         - COA_TESTING=1
     - perl: '5.18'
@@ -61,6 +69,8 @@ matrix:
         apt:
           packages:
             - nginx postgresql-9.3-pgtap
+            - texlive-latex-recommended
+            - texlive-xetex
       env:
         - DB_TESTING=1
     - perl: '5.16'
@@ -69,6 +79,8 @@ matrix:
         apt:
           packages:
             - nginx postgresql-9.2-pgtap
+            - texlive-latex-recommended
+            - texlive-xetex
       env:
         - DB_TESTING=1
     - perl: '5.14'
@@ -77,6 +89,8 @@ matrix:
         apt:
           packages:
             - nginx postgresql-9.2-pgtap
+            - texlive-latex-recommended
+            - texlive-xetex
       env:
         - DB_TESTING=1
 
@@ -120,12 +134,8 @@ before_install:
   - npm install uglify-js@">=2.0 <3.0"
 
 install:
-  - cpanm --quiet --notest --with-develop --with-feature=edi --with-feature=xls --installdeps .
+  - cpanm --quiet --notest --installdeps --with-develop --with-feature=edi --with-feature=latex-pdf-images --with-feature=latex-pdf-ps --with-feature=openoffice  --with-feature=starman --with-feature=xls .
   - cpan-install --coverage
-  - if [ "${POD_TESTING}" != "" ]; then
-       cpanm --quiet --notest Test::Pod ;
-       cpanm --quiet --notest Test::Pod::Coverage ;
-    fi
 
 before_script:
   - make dist DIST_VER=travis DIST_DIR=${HOME}/built-dist/tar-output
@@ -152,6 +162,7 @@ script:
      PGUSER=postgres PGPASSWORD=test
      LSMB_TEST_DB=1 LSMB_NEW_DB=lsmbinstalltest
      LSMB_BASE_URL="http://127.0.0.1:5000"
+     PSGI_BASE_URL="http://127.0.0.1:5001"
      HARNESS_RULESFILE="t/testrules.yml"
     prove -j9 -r
           --pgtap-option dbname=lsmbinstalltest
@@ -161,7 +172,7 @@ script:
 
 after_success:
   - >
-    if [ "$COVERAGE" != "0" ] ; then
+    if [ "$COVERAGE" == "1" ] ; then
        curl http://localhost:5001/stop.pl ;
        while [ -n "$(jobs -r | grep starman.psgi)" ] ; do sleep 1; echo -n "." ; done ;
        echo "" ;

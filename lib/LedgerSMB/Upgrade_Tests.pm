@@ -18,6 +18,8 @@ use warnings;
 use Moose;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
+use List::Util qw( first );
+
 use LedgerSMB::Locale qw(marktext);
 
 =head1 FUNCTIONS
@@ -44,11 +46,7 @@ Returns the test object with the name.
 
 sub get_by_name {
     my ($self, $name) = @_;
-    my @tests = $self->_get_tests;
-    for my $test (@tests){
-       return $test if $test->name eq $name;
-    }
-    return;
+    return first { $_->name eq $name } $self->_get_tests;
 }
 
 =back
@@ -144,21 +142,14 @@ LedgerSMB.
 
 has insert => (is => 'ro', isa => 'Bool', required => 0, default => 0);
 
-=item id_where
+=item id_columns
 
-Repair query key to set the values if we can repair
-
-=cut
-
-has id_where => (is => 'ro', isa => 'Str', required => 0, default => 'id');
-
-=item id_column
-
-Repair column to use as id
+Repair columns to use as ids
 
 =cut
 
-has id_column => (is => 'ro', isa => 'Str', required => 0, default => 'id');
+has id_columns => (is => 'ro', isa => 'ArrayRef[Str]', required => 0,
+                   default => sub { return ['id'] });
 
 =item columns
 
@@ -200,27 +191,47 @@ Enabled buttons
 
 subtype 'button'
     => as 'Str'
-    => where { $_ =~ /Save and Retry|Cancel|Force/ }
+    => where { $_ =~ /Save and Retry|Cancel|Force|Skip/ }
     => message { "Invalid button '$_'" };
 
 has buttons => (is => 'ro', isa => 'ArrayRef[button]',
-                default => sub {['Save and Retry', 'Cancel']},
-                required => 0);
+    default => sub { return ['Save and Retry', 'Cancel']}, required => 0);
 
 =item tooltips
 
-Tooltip for each button
+Tooltip for each button.
+Validate that buttons are enabled for each tooltip, then prepend defaults
+and override with test specific labeling.
 
 =cut
 
 has tooltips => (is => 'ro',
-    isa => 'HashRef[Str]',
-    default => sub {
-        return {
-            'Save and Retry' => marktext('Save the fixes provided and attempt to continue migration'),
-            'Cancel' => marktext('Cancel the <b>migration</b>')
-    }},
-    required => 0);
+    isa => 'Maybe[HashRef[Str]]', required => 0,
+    default => undef,   # Force initializer call
+    initializer => sub {
+        my ( $self, $value, $writer_sub_ref, $attribute_meta ) = @_;
+        $value //= {};
+        my %defaults = ('Save and Retry' => marktext('Save the fixes provided and attempt to continue migration'),
+                                'Cancel' => marktext('Cancel the <b>whole migration</b>'));
+        for my $tooltip (keys %defaults) {
+            $value->{$tooltip} //= $defaults{$tooltip}
+                if grep( /^$tooltip/, @{$self->{buttons}});
+        }
+        $writer_sub_ref->($value);
+    }
+);
+
+=item skipable
+
+Can this test be skipped
+
+=cut
+
+has skipable => (is =>'ro', isa => 'Maybe[Bool]', lazy => 1,
+                 default =>  sub {
+                    return grep(/^Skip$/, @{$_[0]->{buttons}}) == 1;
+                 }
+);
 
 =back
 
@@ -234,6 +245,49 @@ sub _get_tests {
     my @tests;
 
 # 1.2-1.3 tests
+
+push @tests, __PACKAGE__->new(
+        test_query =>
+           q{select count(*) as customer_count
+              from customer
+             where (select count(*)
+                      from chart
+                     where 'AR' = ANY(string_to_array(link,':'))) > 0
+            having count(*) = 0},
+ display_name => marktext('AR account available when customers defined'),
+ instructions => marktext(
+                   q(When customers are defined, an AR account must be defined,
+ however, your setup doesn't. Please go back and define one.)),
+         name => 'customers_require_ar',
+ display_cols => [],
+      columns => [],
+        table => 'customer',
+      appname => 'ledgersmb',
+  min_version => '1.2',
+  max_version => '1.2'
+);
+
+push @tests, __PACKAGE__->new(
+        test_query =>
+           q{select count(*) as vendor_count
+              from vendor
+             where (select count(*)
+                      from chart
+                     where 'AP' = ANY(string_to_array(link,':'))) > 0
+            having count(*) = 0},
+ display_name => marktext('AP account available when vendors defined'),
+ instructions => marktext(
+                   q(When vendors are defined, an AP account must be defined,
+ however, your setup doesn't. Please go back and define one.)),
+         name => 'vendors_require_ap',
+ display_cols => [],
+      columns => [],
+        table => 'vendor',
+      appname => 'ledgersmb',
+  min_version => '1.2',
+  max_version => '1.2'
+);
+
 
 push @tests, __PACKAGE__->new(
         test_query =>
@@ -266,7 +320,7 @@ push @tests, __PACKAGE__->new(
                    'Please make all vendor numbers unique'),
          name => 'unique_vendornumber',
  display_cols => ['vendornumber', 'name', 'address1', 'city', 'state', 'zip'],
-      columns => ['customernumber'],
+      columns => ['vendornumber'],
         table => 'customer',
       appname => 'ledgersmb',
   min_version => '1.2',
@@ -362,7 +416,7 @@ push @tests, __PACKAGE__->new(
  display_name => marktext('No NULL Amounts'),
          name => 'no_null_ac_amounts',
  display_cols => ['trans_id', 'chart_id', 'transdate'],
-    id_column => 'trans_id',
+   id_columns => ['trans_id'],
  instructions => marktext(
                    'There are NULL values in the amounts column of your
 source database. Please either find professional help to migrate your
@@ -406,7 +460,51 @@ push @tests, __PACKAGE__->new(
       appname => 'ledgersmb',
   min_version => '1.2',
   max_version => '1.2'
+    );
+
+push @tests, __PACKAGE__->new(
+        test_query =>
+           q{select count(*) as customer_count
+              from customer
+             where (select count(*)
+                      from chart
+                     where 'AR' = ANY(string_to_array(link,':'))) > 0
+            having count(*) = 0},
+ display_name => marktext('AR account available when customers defined'),
+ instructions => marktext(
+                   q(When customers are defined, an AR account must be defined,
+ however, your setup doesn't. Please go back and define one.)),
+         name => 'customers_require_ar',
+ display_cols => [],
+      columns => [],
+        table => 'customer',
+      appname => 'sql-ledger',
+  min_version => '2.7',
+  max_version => '3.0'
 );
+
+push @tests, __PACKAGE__->new(
+        test_query =>
+           q{select count(*) as vendor_count
+              from vendor
+             where (select count(*)
+                      from chart
+                     where 'AP' = ANY(string_to_array(link,':'))) > 0
+            having count(*) = 0},
+ display_name => marktext('AP account available when vendors defined'),
+ instructions => marktext(
+                   q(When vendors are defined, an AP account must be defined,
+ however, your setup doesn't. Please go back and define one.)),
+         name => 'vendors_require_ap',
+ display_cols => [],
+      columns => [],
+        table => 'vendor',
+      appname => 'ledgersmb',
+  min_version => '2.7',
+  max_version => '3.0'
+);
+
+
 
 push @tests, __PACKAGE__->new(
    test_query => q{select distinct gifi_accno as accno from chart
@@ -421,14 +519,12 @@ push @tests, __PACKAGE__->new(
  display_cols => [ 'accno', 'description' ],
         table => 'gifi',
       columns => ['description'],
-    id_column => 'accno',
-     id_where => 'description IS NULL AND accno',
+   id_columns => ['accno'],
  instructions => marktext('Please add the missing GIFI accounts'),
       appname => 'sql-ledger',
   min_version => '2.7',
   max_version => '3.0'
 );
-
 
 push @tests, __PACKAGE__->new(
    test_query => q{select distinct gifi_accno from account
@@ -614,10 +710,7 @@ Please make sure business used by vendors and constomers are defined.<br>
                         UPDATE vendor SET business_id = NULL
                          WHERE business_id NOT IN (
                             SELECT id FROM business);'],
-          # I want to add to the tooltips already defaulted properly - YL
           tooltips => {
-            'Save and Retry' => marktext('Save the fixes provided and attempt to continue migration'),
-            'Cancel' => marktext('Cancel the <b>migration</b>'),
             'Force' => marktext('This will <b>remove</b> the business references in <u>vendor</u> and <u>customer</u> tables')
           }
         );
@@ -1085,6 +1178,10 @@ push @tests, __PACKAGE__->new(
   display_cols => ['name', 'id', 'datepaid', 'transdate', 'cleared', 'delay', 'amount'],
  instructions => marktext(
                    'Suspect or invalid cleared delays have been detected. Please review the dates in the original application'),
+      buttons => ['Cancel', 'Skip'],
+     tooltips => {
+          'Skip'  => marktext('This will <b>skip</b> this test <b><u>without doing any correction</u></b>')
+     },
         table => 'ap',
       appname => 'sql-ledger',
   min_version => '2.7',

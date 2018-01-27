@@ -5,7 +5,6 @@
 package LedgerSMB::Sysconfig;
 use strict;
 use warnings;
-use Cwd;
 
 use Config;
 use Config::IniFiles;
@@ -269,6 +268,11 @@ def 'W3CValidate',
     default => 1,
     doc => q{};
 
+def 'W3CValidate_uri',
+    section => 'debug',
+    default => 'http://validator.w3.org/check',
+    doc => q{};
+
 ### SECTION  ---   main
 
 
@@ -313,6 +317,15 @@ def 'language',
     section => 'main',
     default => 'en',
     doc => q{};
+
+def 'date_format',
+    section => 'main',
+    default => 'yyyy-mm-dd',
+    dock => q{Specifies the date format to be used for the database
+admin application (setup.pl).
+
+Note that the browser locale (language) will be used when this value isn't set.
+The default is to use the iso date format (yyyy-mm-dd).};
 
 def 'log_level',
     section => 'main',
@@ -541,14 +554,15 @@ for (sort $cfg->Parameters('log4perl_config_modules_loglevel')){
 }
 # Log4perl configuration
 our $log4perl_config = qq(
-    log4perl.rootlogger = $LedgerSMB::Sysconfig::log_level, Basic, Debug
+    log4perl.rootlogger = $LedgerSMB::Sysconfig::log_level, Basic, Debug, DebugPanel
     )
     .
     $modules_loglevel_overrides
     .
     q(
     log4perl.appender.Screen = Log::Log4perl::Appender::Screen
-    log4perl.appender.Screen.layout = SimpleLayout
+    log4perl.appender.Screen.layout = PatternLayout
+    log4perl.appender.Screen.layout.ConversionPattern = Req:%Z %p - %m%n
     # Filter for debug level
     log4perl.filter.MatchDebug = Log::Log4perl::Filter::LevelMatch
     log4perl.filter.MatchDebug.LevelToMatch = INFO
@@ -562,13 +576,13 @@ our $log4perl_config = qq(
     # layout for DEBUG,TRACE messages
     log4perl.appender.Debug = Log::Log4perl::Appender::Screen
     log4perl.appender.Debug.layout = PatternLayout
-    log4perl.appender.Debug.layout.ConversionPattern = %d - %p - %l -- %m%n
+    log4perl.appender.Debug.layout.ConversionPattern = Req:%Z %d - %p - %l -- %m%n
     log4perl.appender.Debug.Filter = MatchDebug
 
     # layout for non-DEBUG messages
     log4perl.appender.Basic = Log::Log4perl::Appender::Screen
     log4perl.appender.Basic.layout = PatternLayout
-    log4perl.appender.Basic.layout.ConversionPattern = %d - %p - %M -- %m%n
+    log4perl.appender.Basic.layout.ConversionPattern = Req:%Z %d - %p - %M -- %m%n
     log4perl.appender.Basic.Filter = MatchRest
 
     log4perl.appender.DebugPanel              = Log::Log4perl::Appender::TestBuffer
@@ -576,7 +590,8 @@ our $log4perl_config = qq(
     log4perl.appender.DebugPanel.mode         = append
     log4perl.appender.DebugPanel.layout       = PatternLayout
     log4perl.appender.DebugPanel.layout.ConversionPattern = %r >> %p >> %m >> %c >> at %F line %L%n
-    log4perl.appender.DebugPanel.Threshold = TRACE
+    #log4perl.appender.DebugPanel.Threshold = TRACE
+
     );
 #some examples of loglevel setting for modules
 #FATAL, ERROR, WARN, INFO, DEBUG, TRACE
@@ -598,21 +613,6 @@ if(!(-d LedgerSMB::Sysconfig::tempdir())){
 }
 
 sub check_permissions {
-    use English qw(-no_match_vars);
-
-    if($EUID == 0){
-        die_pretty(
-            'Running a Web Service as root is a security problem',
-            'If you are starting LedgerSMB as a system service',
-            'please make sure that you drop privlidges as per README.md',
-            'and the example files in conf/',
-            'This makes it difficult to run on a privlidged port (<1024)',
-            'In theory you can pass the --user argument to starman,',
-            'However starman drops privlidges too late, starting us as root.'
-        )
-    }
-
-
     my $tempdir = LedgerSMB::Sysconfig::tempdir();
     # commit 6978b88 added this line to resolve issues if HOME isn't set
     $ENV{HOME} = $tempdir;    ## no critic   # sniff
