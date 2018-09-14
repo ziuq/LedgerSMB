@@ -36,6 +36,8 @@ use LedgerSMB::Setting;
 
 my $logger = Log::Log4perl->get_logger("AA");
 
+# TODO find sources to import $form and $hashref
+
 =pod
 
 =over
@@ -875,11 +877,11 @@ sub get_name {
                         ON (c.entity_id = el.entity_id)
             WHERE c.id = ?/;
 
-    @queryargs = ( $form->{"$form->{vc}_id"} );
+    my @queryargs = ( $form->{"$form->{vc}_id"} );
     my $sth = $dbh->prepare($query);
 
     $sth->execute(@queryargs) || $form->dberror($query);
-    $ref = $sth->fetchrow_hashref(NAME_lc);
+    my $ref = $sth->fetchrow_hashref('NAME_lc');
     $form->db_parse_numeric(sth => $sth, hashref => $ref);
     if ( $form->{id} ) {
         for (qw(currency employee employee_id intnotes)) {
@@ -1001,12 +1003,12 @@ sub get_name {
 
     my %tax;
 
-    while ( $ref = $sth->fetchrow_hashref(NAME_lc) ) {
+    while ( $ref = $sth->fetchrow_hashref('NAME_lc') ) {
         $tax{ $ref->{accno} } = 1;
     }
 
     $sth->finish;
-    $transdate = $dbh->quote( $form->{transdate} );
+    my $transdate = $dbh->quote( $form->{transdate} );
     my $where = $form->{transdate}
               ? qq|WHERE (t.validto >= $transdate OR t.validto IS NULL)|
               : '';
@@ -1025,7 +1027,9 @@ sub get_name {
     $form->{taxaccounts} = "";
     my %a = ();
 
-    while ( $ref = $sth->fetchrow_hashref(NAME_lc) ) {
+    while ( $ref = $sth->fetchrow_hashref('NAME_lc') ) {
+        no strict 'vars';
+        no warnings 'once';
         $form->db_parse_numeric(sth => $sth, hashref => $hashref);
 
         if ( $tax{ $ref->{accno} } ) {
@@ -1134,6 +1138,9 @@ sub get_taxcheck
 
    my $query=qq|select reportable from ac_tax_form where entry_id=?|;
    my $sth=$dbh->prepare($query);
+
+   no strict 'vars';
+   no warnings 'once';
    $sth->execute($entry_id) ||  $form->dberror($query);
 
    my $found=0;
