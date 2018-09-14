@@ -27,6 +27,8 @@ replacement is available.
 
 
 package AA;
+use strict;
+use warnings;
 use LedgerSMB::Sysconfig;
 use LedgerSMB::App_State;
 use Log::Log4perl;
@@ -61,7 +63,6 @@ Post transaction uses the following variables in the $form variable:
 =cut
 
 sub post_transaction {
-    use strict;
 
     my ( $self, $myconfig, $form ) = @_;
     $form->all_business_units;
@@ -1028,8 +1029,8 @@ sub get_name {
     my %a = ();
 
     while ( $ref = $sth->fetchrow_hashref('NAME_lc') ) {
-        no strict 'vars';
-        no warnings 'once';
+        no strict 'vars';   # sniff
+        no warnings 'once'; # sniff
         $form->db_parse_numeric(sth => $sth, hashref => $hashref);
 
         if ( $tax{ $ref->{accno} } ) {
@@ -1139,8 +1140,8 @@ sub get_taxcheck
    my $query=qq|select reportable from ac_tax_form where entry_id=?|;
    my $sth=$dbh->prepare($query);
 
-   no strict 'vars';
-   no warnings 'once';
+   no strict 'vars';    # sniff
+   no warnings 'once';  # sniff
    $sth->execute($entry_id) ||  $form->dberror($query);
 
    my $found=0;
