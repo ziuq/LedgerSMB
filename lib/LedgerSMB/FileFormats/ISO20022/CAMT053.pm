@@ -41,7 +41,8 @@ sub new{
     my ($class, $spec) = @_;
     return unless defined $spec;
     my $raw = XMLin($spec);
-    return unless $raw->{xmlns} eq 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02';
+    return unless defined $raw->{xmlns}
+        and $raw->{xmlns} eq 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02';
     bless ({struct => $raw}, $class);
 }
 
