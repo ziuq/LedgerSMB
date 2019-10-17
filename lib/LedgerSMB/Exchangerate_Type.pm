@@ -109,6 +109,7 @@ Deletes an exchange rate type.  Such types may not have actual rates attached.
 sub delete {
     my ($self) = @_;
     $self->call_dbmethod(funcname => 'exchangerate_type__delete');
+    return;
 }
 
 =back

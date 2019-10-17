@@ -1,6 +1,6 @@
 
 package LedgerSMB::Scripts::setup;
-
+use List::Util qw( none );
 =head1 NAME
 
 LedgerSMB::Scripts::setup - web entry points for database administration
@@ -247,6 +247,7 @@ sub _sanity_checks {
     my $checks = LedgerSMB::Database->verify_helpers(helpers => [ 'psql' ]);
 
     die q{Unable to execute 'psql'} unless $checks->{psql};
+    return;
 }
 
 
@@ -999,7 +1000,7 @@ sub select_coa {
 
         for my $coa_type (qw( chart gifi sic )) {
             if ($request->{$coa_type}) {
-                if (! grep { $_ eq $request->{$coa_type} }
+                if (none { $_ eq $request->{$coa_type} }
                     @{$coa_data->{$coa_lc}->{$coa_type}}) {
                     die $request->{_locale}->text('Invalid request');
                 }

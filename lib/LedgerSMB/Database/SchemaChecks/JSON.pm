@@ -224,6 +224,7 @@ sub _format_confirm {
         push @{$response->{failure}->{confirmations}},
             \%c;
     }
+    return;
 }
 
 sub _format_describe {
@@ -233,6 +234,7 @@ sub _format_describe {
     my $response = _response($check, $dir, 'create');
     $response->{failure}->{title} = $check->{title};
     $response->{failure}->{description} = $check->{description};
+    return;
 }
 
 sub _format_grid {
@@ -272,6 +274,7 @@ sub _format_grid {
             } @$rows
         ];
     }
+    return;
 }
 
 sub _provided {

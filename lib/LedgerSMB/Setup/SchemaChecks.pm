@@ -101,6 +101,7 @@ sub _format_confirm {
 
         $seq++;
     }
+    return;
 }
 
 sub _format_describe {
@@ -122,6 +123,7 @@ sub _format_describe {
         {
             description => markdown($msg),
         });
+    return;
 }
 
 sub _format_grid {
@@ -190,6 +192,7 @@ sub _format_grid {
             columns => [ map { $cols->{$_} } ('__pk', @{$args{columns}}) ],
             rows => $rows,
         });
+    return;
 }
 
 sub _provided {

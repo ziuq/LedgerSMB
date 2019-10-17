@@ -1,4 +1,3 @@
-
 package LedgerSMB::Database::ChangeChecks;
 
 use strict;
@@ -7,6 +6,7 @@ use warnings;
 use Exporter 'import';
 use File::Spec;
 use MIME::Base64;
+use List::Util qw( any );
 
 our @EXPORT =  ## no critic
     qw| check grid confirm describe provided save_grid dropdown_sql |;
@@ -164,7 +164,7 @@ sub load_checks {
     }
 
     die 'Multiple checks with the same name not supported'
-        if grep { $checks_count{$_} > 1 } keys %checks_count;
+        if any { $checks_count{$_} > 1 } keys %checks_count;
 
     return @checks;
 }
@@ -443,6 +443,7 @@ sub check {
 
     $args{title} = $title;
     push @checks, \%args;
+    return;
 }
 
 
@@ -772,6 +773,7 @@ sub save_grid {
             (map { $row->{$_} } @$pk ))
             or die $sth->errstr;
     }
+    return;
 }
 
 

@@ -113,6 +113,7 @@ sub save {
     my ($self) = @_;
     my ($ref) = $self->call_dbmethod(funcname => 'exchangerate__save');
     $self = $self->new($ref);
+    return;
 }
 
 =item list (curr => $curr, start => $date, end => $date, type => $rate_type_id)
@@ -150,6 +151,7 @@ Note: deleting exchange rates generally doesn't make much sense as rate informat
 sub delete {
     my ($self) = @_;
     my ($ref) = $self->call_dbmethod(funcname => 'exchangerate__delete');
+    return;
 }
 
 =back

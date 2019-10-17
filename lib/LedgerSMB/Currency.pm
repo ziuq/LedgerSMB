@@ -99,6 +99,7 @@ Deletes a currency.  Such currencies may not be referenced by other entities suc
 sub delete {
     my ($self) = @_;
     my ($ref) = $self->call_dbmethod(funcname => 'currency__delete');
+    return;
 }
 
 =back

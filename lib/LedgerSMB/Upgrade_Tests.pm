@@ -1,5 +1,6 @@
 
 package LedgerSMB::Upgrade_Tests;
+use List::Util qw( any);
 
 =head1 NAME
 
@@ -217,7 +218,7 @@ has tooltips => (is => 'ro',
                                 'Cancel' => marktext('Cancel the <b>whole migration</b>'));
         for my $tooltip (keys %defaults) {
             $value->{$tooltip} //= $defaults{$tooltip}
-                if grep( /^$tooltip/, @{$self->{buttons}});
+                if any( /^$tooltip/, @{$self->{buttons}});
         }
         $writer_sub_ref->($value);
     }
